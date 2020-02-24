@@ -29,44 +29,44 @@ def generate_plots(output: dict = None, episodes: int = 100,
     else:
         writer = None
     for env_name in output.keys():
-        for dp_method in output[env_name].keys():
+        for algo in output[env_name].keys():
             if not plot_hyperparams:
                 if not use_tensorboards:
-                    logdir = f'{RESULT_DIR}/{env_name}_{dp_method}'
+                    logdir = f'{RESULT_DIR}/{env_name}_{algo}'
                 # training plots
                 generate_plot(env_name=env_name, train_or_test='train',
-                              dp_method=dp_method,
-                              output=output[env_name][dp_method]['train'],
+                              algo=algo,
+                              output=output[env_name][algo]['train'],
                               episodes=episodes, logdir=f'{logdir}_train.html',
                               writer=writer)
                 # testing plots
                 generate_plot(env_name=env_name, train_or_test='test',
-                              dp_method=dp_method,
-                              output=output[env_name][dp_method]['test'],
+                              algo=algo,
+                              output=output[env_name][algo]['test'],
                               episodes=episodes // train_rng,
                               logdir=f'{logdir}_test.html',
                               writer=writer)
             else:
                 if not use_tensorboards:
-                    logdir = f'{RESULT_DIR}/{env_name}_{dp_method}_hyperparams.html'
+                    logdir = f'{RESULT_DIR}/{env_name}_{algo}_hyperparams.html'
                 else:
-                    logdir = f'{logdir}/{env_name}_{dp_method}_hyperparams'
+                    logdir = f'{logdir}/{env_name}_{algo}_hyperparams'
                 generate_hyperparameters_plot(env_name=env_name,
-                                              dp_method=dp_method,
+                                              algo=algo,
                                               episodes=episodes,
                                               output=output[env_name][
-                                                  dp_method],
+                                                  algo],
                                               logdir=logdir,
                                               writer=writer)
     if use_tensorboards:
         writer.close()
 
 
-def generate_hyperparameters_plot(env_name: str, dp_method: str,
+def generate_hyperparameters_plot(env_name: str, algo: str,
                                   episodes: int, output: Dict, logdir: str,
                                   writer: SummaryWriter = None):
     subplots = [
-        f'{env_name.capitalize()}_{dp_method.capitalize()}_Hyperparameters']
+        f'{env_name.capitalize()}_{algo.capitalize()}_Hyperparameters']
     if writer is not None:
         # for theta_dr, values in output.items():
         #     for i in range(len(values)):
@@ -92,7 +92,7 @@ def generate_hyperparameters_plot(env_name: str, dp_method: str,
             # height=800,
             # width=1600,
             showlegend=True,
-            title=f'HYPERPARAM EVALUATION for {env_name} - {dp_method}',
+            title=f'HYPERPARAM EVALUATION for {env_name} - {algo}',
             titlefont={"size": 25},
             # margin={'l': 100, 't': 0, 'r': 100},
             # hovermode='closest',
@@ -114,15 +114,15 @@ def generate_hyperparameters_plot(env_name: str, dp_method: str,
         plotly.offline.plot(fig, filename=logdir)
 
 
-def generate_plot(env_name: str, train_or_test: str, dp_method: str,
+def generate_plot(env_name: str, train_or_test: str, algo: str,
                   episodes: int, output: Dict, logdir: str,
                   writer: SummaryWriter = None):
     subplots = [
         f'{train_or_test.capitalize()}_{env_name.capitalize()}_'
-        f'{dp_method.capitalize()}_'
+        f'{algo.capitalize()}_'
         f'Average Cumulative Rewards Per Episode Over 10 Seeds',
         f'{train_or_test.capitalize()}_{env_name.capitalize()}_'
-        f'{dp_method.capitalize()}_'
+        f'{algo.capitalize()}_'
         f'Average Number of Timesteps to Solve Per Episode Over 10 Seeds'
     ]
 
@@ -146,20 +146,20 @@ def generate_plot(env_name: str, train_or_test: str, dp_method: str,
         # for metric, values in output.items():
         #     for i in range(episodes):
         #         if metric in colors.keys():
-        #             writer.add_scalar(f'{env_name}/{dp_method}/{metric}',
+        #             writer.add_scalar(f'{env_name}/{algo}/{metric}',
         #                               values[i], i)
         #
         # layout = {env_name:
-        #               {dp_method:
-        #                    ['Margin', [f'{env_name}/{dp_method}/{l}' for l in
+        #               {algo:
+        #                    ['Margin', [f'{env_name}/{algo}/{l}' for l in
         #                      list(bounded_rewards.keys())]]
         #               },
         #          }
         #
         # writer.add_custom_scalars(layout)
         # # writer.add_custom_scalars_marginchart(
-        # #     title=f'{train_or_test}/{env_name}/{dp_method}/rewards',
-        # #     tags=[f'{env_name}/{dp_method}/{l}' for l in
+        # #     title=f'{train_or_test}/{env_name}/{algo}/rewards',
+        # #     tags=[f'{env_name}/{algo}/{l}' for l in
         # #           list(bounded_rewards.keys())])
 
         for i in range(episodes):
@@ -188,7 +188,7 @@ def generate_plot(env_name: str, train_or_test: str, dp_method: str,
             # height=800,
             # width=1600,
             showlegend=True,
-            title=f'Experiments for {env_name} - {dp_method}',
+            title=f'Experiments for {env_name} - {algo}',
             titlefont={"size": 25},
             # margin={'l': 100, 't': 0, 'r': 100},
             # hovermode='closest',

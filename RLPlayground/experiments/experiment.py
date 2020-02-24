@@ -19,14 +19,14 @@ class Experiment(object):
         self.params_vals = params_vals
         self.seeds = seeds
 
-    # def run(self):
-    #     raise NotImplementedError('Experiment require run method')
-    #
-    # def _inner_run(self):
-    #     raise NotImplementedError('Experiment require inner run method')
-    #
-    # def tune_hyperparams(self):
-    #     raise NotImplementedError('Experiment require tune hyperparams method')
-    #
-    # def _inner_tune_hyperparams(self):
-    #     raise NotImplementedError('Experiment require tune hyperparams method')
+    def run(self):
+        raise NotImplementedError('Experiment require run method')
+
+    def _inner_run(self):
+        raise NotImplementedError('Experiment require inner run method')
+
+    def tune_hyperparams(self):
+        raise NotImplementedError('Experiment require tune hyperparams method')
+
+    def _inner_tune_hyperparams(self):
+        raise NotImplementedError('Experiment require tune hyperparams method')

@@ -1,29 +1,30 @@
-from RLPlayground.utils.data_structures import Experience
-from random import random
+import random
+from collections import deque
+
+from RLPlayground.utils.data_structures import Transition
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int):
+    def __init__(self, capacity: int, n_step: int):
         """
 
-        :param capacity: maximum number of experience tuple stored in replay
+        :param capacity: maximum number of transition tuple stored in replay
+        :param n_step: n step used for replay
         """
         self.capacity = capacity
-        self.memory = []
-        self.position = 0
+        self.memory = deque(maxlen=capacity)
+        self.n_step = n_step
+        if n_step > 0:
+            self.n_step_memory = deque(maxlen=n_step)
 
-    def push(self, experience: Experience):
-        if len(self.memory) < self.capacity:
-            self.memory.append(None)
-        self.memory[self.position] = experience
-        self.position = (self.position + 1) % self.capacity
+    def push(self, transition: Transition):
+        if self.n_step > 0:
+            self.n_step_memory.append(transition)
+        self.memory.append(transition)
 
     def sample(self, batch_size: int):
-        return random.sample(self.memory, batch_size)
-
-    def clear(self):
-        self.memory = []
-        self.position = 0
+        return random.sample(self.memory, batch_size if len(
+            self.memory) > batch_size else len(self.memory))
 
     def __len__(self):
         return len(self.memory)
@@ -33,7 +34,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, capacity: int, alpha: float):
         """
 
-        :param capacity: maximum number of experience tuple stored in replay
+        :param capacity: maximum number of transition tuple stored in replay
         :param alpha: 0 for no prioritization, 1 for full prioritization
         """
         super(PrioritizedReplayBuffer, self).__init__(capacity=capacity)

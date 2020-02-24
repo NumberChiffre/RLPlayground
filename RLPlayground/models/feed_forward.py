@@ -76,6 +76,43 @@ class TwoLayerFCBodyWithAction(nn.Module):
         return phi
 
 
+class LinearFCBody(nn.Module):
+    def __init__(self, state_dim: int, action_dim: int,
+                 hidden_units: tuple = (64, 64),
+                 gate: nn.functional = nn.functional.relu):
+        super(LinearFCBody, self).__init__()
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        hidden_size1, hidden_size2 = hidden_units
+        self.fc1 = nn.Linear(self.state_dim, hidden_size1)
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc3 = nn.Linear(hidden_size2, self.action_dim)
+        self.gate = gate
+
+    def forward(self, observation):
+        x = self.gate(self.fc1(observation))
+        x = self.gate(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+class TwoLayerFCBody(nn.Module):
+    def __init__(self, state_dim: int, action_dim: int,
+                 hidden_units: tuple = (64, 64),
+                 gate: nn.functional = nn.functional.relu):
+        super(TwoLayerFCBody, self).__init__()
+        hidden_size1, hidden_size2 = hidden_units
+        self.fc1 = layer_init(nn.Linear(state_dim, hidden_size1))
+        self.fc2 = layer_init(
+            nn.Linear(hidden_size2, action_dim))
+        self.gate = gate
+
+    def forward(self, x):
+        x = self.gate(self.fc1(x))
+        phi = self.gate(self.fc2(x))
+        return phi
+
+
 class OneLayerFCBodyWithAction(nn.Module):
     def __init__(self, state_dim: int, action_dim: int,
                  hidden_units: tuple = (64, 64),

@@ -2,17 +2,17 @@
     experiment_name: 'n_step_td',
 
     # dp methods
-    algos: ['q_learning', 'td'],
+    algos: ['q_learning', 'sarsa', 'expected_sarsa'],
 
     # environments
-    env_names: ['cartpole-v0'],
+    env_names: ['CartPole-v0'],
 
     # specs for the experiment
     experiment_cfg:
     {
         'runs': 1,
-        'steps': 2000,
-        'episodes': 502,
+        'steps': 5000,
+        'episodes': 1000,
         'train_rng': 10,
         'test_rng': 5,
     },
@@ -20,14 +20,19 @@
     # specs for the agent for tabular environments
     agent_cfg:
     {
-        'cartpole-v0':
+        'CartPole-v0':
         {
-            'q-learning':{
+            'q_learning':{
                 'eps': 0.1,
                 'gamma': 0.9,
                 'n_step': 4,
                 'alpha': 0.2,
                 'algo': 'q_learning',
+                'replay_capacity': 200,
+                'nn_hidden_units': [64, 64],
+                'lr': 0.01,
+                'batch_size': 64,
+
             },
             'sarsa':{
                 'eps': 0.1,
@@ -35,6 +40,10 @@
                 'n_step': 4,
                 'alpha': 0.2,
                 'algo': 'sarsa',
+                'replay_capacity': 200,
+                'nn_hidden_units': [64, 64],
+                'lr': 0.01,
+                'batch_size': 64,
             },
             'expected_sarsa':{
                 'eps': 0.1,
@@ -42,6 +51,10 @@
                 'n_step': 4,
                 'alpha': 0.2,
                 'algo': 'expected_sarsa',
+                'replay_capacity': 200,
+                'nn_hidden_units': [64, 64],
+                'lr': 0.01,
+                'batch_size': 64,
             }
         }
     },

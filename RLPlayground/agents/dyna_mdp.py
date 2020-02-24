@@ -6,26 +6,27 @@ from RLPlayground.agents.agent import Agent
 from RLPlayground.utils.data_structures import RLAlgorithm
 
 
+# @Agent.register('dyna_mdp')
 class MDPDynaAgent(Agent):
     def __init__(self,
                  env: Env,
                  agent_cfg: Dict):
         super(MDPDynaAgent, self).__init__(env=env, agent_cfg=agent_cfg)
         self.theta = agent_cfg['theta']
-        self.discount_rate = agent_cfg['discount_rate']
+        self.gamma = agent_cfg['gamma']
 
     def random_policy(self) -> np.array:
         # generate random policy to evaluate different experiments by seeds
         return np.random.randint(0, self.env.nA, size=self.env.nS)
 
-    def train(self, dp_method: str, num_steps: int, value_policy: List) -> \
+    def train(self, algo: str, num_steps: int, value_policy: List) -> \
             Tuple[np.array, np.array]:
         # value policy = [policy, value_function]
-        if dp_method == RLAlgorithm.VI.value:
+        if algo == RLAlgorithm.VI.value:
             policy, value_func = self.value_iteration(num_steps=num_steps,
                                                       value_func=value_policy[
                                                           1])
-        elif dp_method == RLAlgorithm.PI.value:
+        elif algo == RLAlgorithm.PI.value:
             policy, value_func = self.policy_iteration(num_steps=num_steps,
                                                        policy=value_policy[
                                                            0])
@@ -51,7 +52,7 @@ class MDPDynaAgent(Agent):
             value = 0
             for prob, next_s, reward, done in self.env.P[s][a]:
                 value += prob * (
-                        reward + self.discount_rate * value_func[next_s])
+                        reward + self.gamma * value_func[next_s])
             action_values[a] = value
         return action_values
 
