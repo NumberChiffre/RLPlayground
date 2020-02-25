@@ -4,6 +4,7 @@ import numpy as np
 import pickle
 from typing import Dict, List
 from collections import defaultdict
+from datetime import datetime
 
 from RLPlayground.agents.agent import Agent
 from RLPlayground.utils.logger import ProjectLogger
@@ -26,6 +27,7 @@ class Experiment:
         self.seeds = seeds
         self.experiment_cfg = experiment_cfg
         self.agent_cfg = agent_cfg
+        self.experiment_cfg['date'] = datetime.today().strftime('%Y-%m-%d')
 
     def generate_metrics(self, results: List) -> defaultdict:
         """generate whatever metrics needed for the experiment"""

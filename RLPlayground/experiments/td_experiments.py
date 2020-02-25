@@ -20,8 +20,7 @@ class TDExperiment(Experiment):
         super().__init__(logger=logger, *args, **kwargs)
         self.replay_buffer_capacities = self.experiment_cfg[
             'replay_buffer_capacities']
-        self.lrs = np.array([float(i / 100) for i in range(0, 101, 10)])
-        # self.lrs = np.array([0.8, 0.9])
+        self.lrs = np.array([float(i / 1000) for i in range(1, 201, 10)])
         self.experiment_cfg['lrs'] = self.lrs
 
     def generate_metrics(self, env_name: str, algo: str, capacity: int,
@@ -51,6 +50,9 @@ class TDExperiment(Experiment):
             np.vstack([results[i][1] for i in range(len(results))]),
             axis=0)
         output[env_name][algo][capacity]['min_timesteps'] = np.min(
+            np.vstack([results[i][1] for i in range(len(results))]),
+            axis=0)
+        output[env_name][algo][capacity]['max_timesteps'] = np.max(
             np.vstack([results[i][1] for i in range(len(results))]),
             axis=0)
         return output
@@ -85,9 +87,8 @@ class TDExperiment(Experiment):
     def _inner_run(agent_cfg: dict, experiment_cfg: dict, env_name: str,
                    seed: int = 1, algo: str = 'sarsa') -> Tuple[
         np.array, np.array]:
+        # seed and result initialization
         np.random.seed(seed)
-
-        # result initialization
         cum_reward = np.zeros((len(experiment_cfg['lrs']),
                                experiment_cfg['runs'],
                                experiment_cfg['episodes']))
@@ -96,24 +97,28 @@ class TDExperiment(Experiment):
                                  experiment_cfg['episodes'])) * experiment_cfg[
                             'steps']
 
+        # O(lrs * runs * episodes * max(test_rng * steps, steps))
         for i_lr in range(len(experiment_cfg['lrs'])):
-            # create environment and agent, set the learning rate
+            # create environment and agent
+            # set the learning rate
+            # set the tensorboard path..
             env = gym.make(env_name)
-            agent_cfg[env_name][algo]['lr'] = experiment_cfg['lrs'][i_lr]
+            agent_config = agent_cfg[env_name][algo]
+            agent_config['lr'] = experiment_cfg['lrs'][i_lr]
             writer = SummaryWriter(
                 log_dir=f"{experiment_cfg['tensorboard_path']}/{env_name}/"
-                f"{algo}/replay_buffer_capacity/"
-                f"{agent_cfg[env_name][algo]['replay_capacity']}/lr/"
-                f"{agent_cfg[env_name][algo]['lr']}/seed/{seed}")
-            agent = TDAgent(env=env, writer=writer,
-                            agent_cfg=agent_cfg[env_name][algo])
+                f"{algo}/{experiment_cfg['date']}/n_step/{agent_config['n_step']}/"
+                f"replay_buffer_capacity/{agent_config['replay_capacity']}/lr/"
+                f"{agent_config['lr']}/seed/{seed}")
+            agent = TDAgent(env=env, writer=writer, agent_cfg=agent_config)
 
-            # O(runs * episodes * max(test_rng * steps, steps))
+            # go through runs, in order to further average, and episodes
             for r in range(experiment_cfg['runs']):
                 for i_episode in range(experiment_cfg['episodes']):
-                    # interact with environment to get reward
                     cr, t = agent.interact(num_steps=experiment_cfg['steps'],
                                            episode=i_episode)
+                    writer.add_scalar(tag='Episode-Duration', scalar_value=t,
+                                           global_step=i_episode)
                     time_to_solve[i_lr, r, i_episode] = t
                     cum_reward[i_lr, r, i_episode] = cr
                     print(f"lr {experiment_cfg['lrs'][i_lr]} | "

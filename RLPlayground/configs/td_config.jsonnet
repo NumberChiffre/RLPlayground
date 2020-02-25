@@ -2,7 +2,7 @@
     experiment_name: 'n_step_td',
 
     # dp methods
-    algos: ['q_learning', 'sarsa', 'expected_sarsa'],
+    algos: ['expected_sarsa', 'q_learning', 'sarsa'],
 
     # environments
     env_names: ['CartPole-v0'],
@@ -12,7 +12,7 @@
     {
         'runs': 1,
         'steps': 5000,
-        'episodes': 1000,
+        'episodes': 60,
         'train_rng': 10,
         'test_rng': 5,
         'replay_buffer_capacities': [50, 100, 250, 500],
@@ -28,31 +28,28 @@
                 'eps': 0.1,
                 'gamma': 0.9,
                 'n_step': 4,
-                'alpha': 0.2,
                 'algo': 'q_learning',
                 'replay_capacity': 200,
                 'nn_hidden_units': [64, 64],
-                'lr': 0.01,
+                'lr': 0.001,
                 'batch_size': 32,
-                'update_freq': 500,
+                'update_freq': 10,
             },
             'sarsa':{
                 'eps': 0.1,
                 'gamma': 0.9,
                 'n_step': 4,
-                'alpha': 0.2,
                 'algo': 'sarsa',
                 'replay_capacity': 200,
                 'nn_hidden_units': [64, 64],
-                'lr': 0.01,
+                'lr': 0.001,
                 'batch_size': 32,
-                'update_freq': 500,
+                'update_freq': 10,
             },
             'expected_sarsa':{
                 'eps': 0.1,
                 'gamma': 0.9,
                 'n_step': 4,
-                'alpha': 0.2,
                 'algo': 'expected_sarsa',
                 'replay_capacity': 200,
                 'nn_hidden_units': [64, 64],
