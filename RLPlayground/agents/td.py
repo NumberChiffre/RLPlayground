@@ -4,6 +4,7 @@ from gym import Env
 import torch.optim as optim
 import torch.nn as nn
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from RLPlayground.agents.agent import Agent
 from RLPlayground.models.feed_forward import LinearFCBody
@@ -11,12 +12,18 @@ from RLPlayground.models.replay import ReplayBuffer
 from RLPlayground.utils.data_structures import RLAlgorithm, Transition
 
 
-# TODO: implement non-nstep algos for Temporal-Difference Learning
 class TDAgent(Agent):
     def __init__(self,
                  env: Env,
+                 writer: SummaryWriter,
                  agent_cfg: Dict):
+        """
+
+        :param env: gym environment used for Experiment
+        :param agent_cfg: config file for given agent
+        """
         super(TDAgent, self).__init__(env=env, agent_cfg=agent_cfg)
+        self.train_count = 0
 
         # specs for RL agent
         self.eps = agent_cfg['eps']
@@ -24,6 +31,7 @@ class TDAgent(Agent):
         self.n_step = agent_cfg['n_step']
         self.alpha = agent_cfg['alpha']
         self.algo = agent_cfg['algo']
+        self.update_freq = agent_cfg['update_freq']
 
         # details for the NN model + experience replay
         self.replay_buffer = ReplayBuffer(
@@ -48,9 +56,10 @@ class TDAgent(Agent):
         # are very noisy. It is calculated over a batch of transitions
         # sampled from the replay memory:
         self.loss_func = nn.SmoothL1Loss()
+        self.writer = writer
 
     def get_action(self, observation):
-        # either take greedy action or explore with epsilon rate
+        """either take greedy action or explore with epsilon rate"""
         if np.random.random() < self.eps:
             return self.env.action_space.sample()
         else:
@@ -59,44 +68,39 @@ class TDAgent(Agent):
             action = q_value.max(1)[1].data[0].item()
             return action
 
-    def train(self):
+    def train(self) -> Tuple[float, float]:
         batch = self.replay_buffer.sample(self.batch_size)
-        # TODO: treat them in experience replay sampling
-        observation, action, reward, next_observation, done = zip(*batch)
-        observation = np.concatenate(observation, 0)
-        next_observation = np.concatenate(next_observation, 0)
-
-        observation = torch.FloatTensor(observation)
-        action = torch.LongTensor(action)
-        reward = torch.FloatTensor(reward)
-        next_observation = torch.FloatTensor(next_observation)
-        done = torch.FloatTensor(done)
-
-        q = self.model(observation).gather(1, action.unsqueeze(
-            1)).squeeze(1)
         if self.algo == RLAlgorithm.QLearning.value:
-            next_q = self.target_model(next_observation).max(1)[0]
+            next_q = self.target_model(batch.s1).max(1)[0]
         elif self.algo == RLAlgorithm.SARSA.value:
-            next_q = self.model(next_observation).gather(1, action.unsqueeze(
-                1)).squeeze(1)
+            next_q = self.target_model(batch.s1). \
+                gather(1, batch.a.unsqueeze(1)).squeeze(1)
         elif self.algo == RLAlgorithm.EXPECTED_SARSA.value:
-            next_q = torch.sum(self.model(next_observation), axis=1)
-
-        expected_q = reward + self.gamma * (1 - done) * next_q
+            next_q = torch.sum(self.target_model(batch.s1), axis=1)
+        expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+        q = self.model(batch.s0).gather(1, batch.a.unsqueeze(
+            1)).squeeze(1)
 
         # loss = 0.5 * (expected_q.detach() - q).pow(2).mean()
         loss = self.loss_func(expected_q.detach(), q)
         self.optimizer.zero_grad()
         loss.backward()
+
+        # gradient clipping to avoid loss divergence based on DeepMind's DQN in
+        # 2015, where the author clipped the gradient within [-1, 1]
+        # for param in self.model.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+        nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
         self.optimizer.step()
 
         # soft update rule
-        if self.algo == RLAlgorithm.QLearning.value:
+        if self.train_count != 0 and self.update_freq % self.train_count == 0:
             self.target_model.load_state_dict(self.model.state_dict())
-        return loss
+        return float(loss.detach().cpu().numpy()), float(
+            np.mean(q.detach().cpu().numpy()))
 
     def generate_n_step_q(self):
-        # transition tuple: (s0, a, s1, r, done)
+        """transition tuple: (s0, a, s1, r, done)"""
         transitions = self.replay_buffer.n_step_memory
         reward, next_observation, done = transitions[-1][-3:]
 
@@ -107,8 +111,8 @@ class TDAgent(Agent):
         return reward, next_observation, done
 
     def interact(self, num_steps: int, episode: int) -> Tuple[float, int]:
-        # use agent to interact with environment by making actions based on
-        # optimal policy to obtain cumulative rewards
+        """use agent to interact with environment by making actions based on
+        optimal policy to obtain cumulative rewards"""
         observation = self.env.reset()
         observation = np.expand_dims(observation, 0)
         cr = 0
@@ -123,19 +127,27 @@ class TDAgent(Agent):
                 if t % self.n_step == 0 and t != 0:
                     reward, next_observation, done = self.generate_n_step_q()
 
+            # store into experience replay buffer and sample batch of
+            # transitions to estimate the q-values and train on losses
             transition = Transition(s0=observation, a=action,
                                     s1=next_observation, r=reward, done=done)
             self.replay_buffer.push(transition)
-
-            if len(self.replay_buffer.memory) % (self.batch_size * 2) == 0:
-                loss = self.train()
-                print(f'episode {episode} | step {t} | loss {loss}')
+            if len(self.replay_buffer.memory) > self.batch_size:
+                loss, q = self.train()
+                self.writer.add_scalar(tag='Training/Q-loss', scalar_value=loss,
+                                       global_step=self.train_count)
+                self.writer.add_scalar(tag='Training/Q-Value', scalar_value=q,
+                                       global_step=self.train_count)
+                self.train_count += 1
+                print(
+                    f'episode {episode} | step {t} | loss {loss} | q-value {q}')
             observation = next_observation
 
             # last step reached in episode
             # update the target network
             if done:
                 num_steps = t + 1
+                print(f'episode {episode} finished at {num_steps} steps')
                 return cr, num_steps
             else:
                 action = self.get_action(observation=observation)
