@@ -7,19 +7,18 @@ from torch.utils.tensorboard import SummaryWriter
 from RLPlayground import RESULT_DIR, TENSORBOARD_DIR
 
 
-def generate_plots(output: dict = None, episodes: int = 100,
-                   train_rng: int = 10, plot_hyperparams: bool = True,
-                   use_tensorboards: bool = True,
-                   experiment_name: str = 'dyna_mdp'):
+def generate_plots(plot_hyperparams: bool, use_tensorboards: bool, output: dict,
+                   experiment_cfg: dict):
     """
 
     :param output: dictionary containing all environments, dp methods, metrics
-    :param episodes: number of total number of episodes ran on experiments
-    :param train_rng: training range used for testing
     :param plot_hyperparams: checks for what type of plot
     :param use_tensorboards: checks for using plotly or tensorboard
     :return:
     """
+    episodes = experiment_cfg['episodes']
+    train_rng = experiment_cfg['train_rng']
+    experiment_name = experiment_cfg['experiment_name']
     if use_tensorboards:
         if plot_hyperparams:
             logdir = f'{TENSORBOARD_DIR}/{experiment_name}/hyperparams'
@@ -127,15 +126,16 @@ def generate_plot(env_name: str, train_or_test: str, algo: str,
     ]
 
     colors = {
-        'upper_var_cum_rewards': 'midnightblue',
+        'upper_std_cum_rewards': 'midnightblue',
         'mean_cum_rewards': 'darkgreen',
-        'lower_var_cum_rewards': 'midnightblue',
+        'lower_std_cum_rewards': 'midnightblue',
         'max_cum_rewards': 'crimson',
     }
 
     time_colors = {
         'mean_timesteps': 'firebrick',
         'min_timesteps': 'royalblue',
+        'max_timesteps': 'midnightblue',
     }
 
     if writer is not None:
@@ -195,7 +195,7 @@ def generate_plot(env_name: str, train_or_test: str, algo: str,
         )
 
         for metric, values in output.items():
-            if metric != 'var_cum_rewards':
+            if metric != 'std_cum_rewards':
                 if metric in colors.keys():
                     color = colors[metric]
                     x = x_axis
@@ -242,22 +242,19 @@ if __name__ == '__main__':
     from RLPlayground import CONFIG_DIR
     import json
 
-    with open(f'{RESULT_DIR}/dyna_mdp_experiments_hyperparameters.pickle',
-              'rb') as file:
-        hyperparams = pickle.load(file)
-    with open(f'{RESULT_DIR}/dyna_mdp_experiments.pickle', 'rb') as file:
+    # with open(f'{RESULT_DIR}/dyna_mdp_experiments_hyperparameters.pickle',
+    #           'rb') as file:
+    #     hyperparams = pickle.load(file)
+    with open(f'{RESULT_DIR}/n_step_td_experiments.pickle', 'rb') as file:
         output = pickle.load(file)
 
-    cfg = evaluate_file(f'{CONFIG_DIR}/dyna_mdp_config.jsonnet')
+    cfg = evaluate_file(f'{CONFIG_DIR}/n_step_td_config.jsonnet')
     cfg = json.loads(cfg)
 
     # specs for the experiment
     experiment_cfg = cfg['experiment_cfg']
-    generate_plots(output=hyperparams, episodes=experiment_cfg['episodes'],
-                   plot_hyperparams=True, use_tensorboards=False,
-                   experiment_name=cfg['experiment_name'])
+    # generate_plots(output=hyperparams, plot_hyperparams=True,
+    # use_tensorboards=False, experiment_cfg=experiment_cfg)
 
-    generate_plots(output=output, episodes=experiment_cfg['episodes'],
-                   train_rng=experiment_cfg['train_rng'],
-                   plot_hyperparams=False, use_tensorboards=False,
-                   experiment_name=cfg['experiment_name'])
+    generate_plots(output=output, plot_hyperparams=False,
+                   use_tensorboards=False, experiment_cfg=experiment_cfg)

@@ -20,16 +20,3 @@ class Transition(NamedTuple):
     r: np.ndarray
     s1: np.ndarray
     done: bool = False
-
-
-# gotta put more keys into defaultdict + able to pickle..
-def foo1():
-    return defaultdict(dict)
-
-
-def foo2():
-    return defaultdict(int)
-
-
-def foo():
-    return defaultdict(foo1)

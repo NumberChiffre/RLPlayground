@@ -5,7 +5,10 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from torch.distributions import Categorical
+import torchviz
 
+from RLPlayground.utils.utils import torch_argmax_mask
 from RLPlayground.agents.agent import Agent
 from RLPlayground.models.feed_forward import LinearFCBody
 from RLPlayground.models.replay import ReplayBuffer
@@ -31,22 +34,25 @@ class TDAgent(Agent):
         self.n_step = agent_cfg['n_step']
         self.algo = agent_cfg['algo']
         self.update_freq = agent_cfg['update_freq']
+        self.lr = agent_cfg['lr']
+        self.batch_size = agent_cfg['batch_size']
+        self.seed = agent_cfg['seed']
+        # self.params = vars(self).copy()
 
         # details for the NN model + experience replay
         self.replay_buffer = ReplayBuffer(
             capacity=agent_cfg['replay_capacity'], n_step=self.n_step)
-        self.policy_model = LinearFCBody(
+        self.policy_model = LinearFCBody(seed=self.seed,
             state_dim=self.env.observation_space.shape[0],
             action_dim=self.env.action_space.n,
             hidden_units=tuple(agent_cfg['nn_hidden_units'])
         )
-        self.target_model = LinearFCBody(
+        self.target_model = LinearFCBody(seed=self.seed,
             state_dim=self.env.observation_space.shape[0],
             action_dim=self.env.action_space.n,
             hidden_units=tuple(agent_cfg['nn_hidden_units'])
         )
-        self.lr = agent_cfg['lr']
-        self.batch_size = agent_cfg['batch_size']
+        self.target_model.load_state_dict(self.policy_model.state_dict())
         self.optimizer = optim.Adam(self.policy_model.parameters(), self.lr)
 
         # Huber loss acts like the mean squared error when the error is small,
@@ -63,9 +69,16 @@ class TDAgent(Agent):
             return self.env.action_space.sample()
         else:
             state = torch.FloatTensor(observation)
-            q_value = self.policy_model(state)
-            action = q_value.max(1)[1].data[0].item()
-            return action
+            # self.target_model.eval()
+            with torch.no_grad():
+                return self.policy_model(state).max(1)[1].data[0].item()
+
+    def dist(self, batch: Transition) -> Categorical:
+        q = self.policy_model(batch.s1)
+        probs = torch.empty_like(q).fill_(
+            self.eps / (self.env.action_space.n - 1))
+        probs[torch_argmax_mask(q, len(q.shape) - 1)] = 1 - self.eps
+        return Categorical(probs=probs)
 
     def train(self) -> Tuple[float, float]:
         batch = self.replay_buffer.sample(self.batch_size)
@@ -75,15 +88,15 @@ class TDAgent(Agent):
             next_q = self.target_model(batch.s1). \
                 gather(1, batch.a.unsqueeze(1)).squeeze(1)
         elif self.algo == RLAlgorithm.EXPECTED_SARSA.value:
-            next_q = torch.sum(
-                self.target_model(batch.s1) * 1 / self.env.action_space.n,
-                axis=1)
+            dist = self.dist(batch=batch)
+            next_q = torch.sum(self.target_model(batch.s1) * dist.probs, axis=1)
         expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         q = self.policy_model(batch.s0).gather(1, batch.a.unsqueeze(
             1)).squeeze(1)
 
         # loss = 0.5 * (expected_q.detach() - q).pow(2).mean()
         loss = self.loss_func(expected_q.detach(), q)
+        # torchviz.make_dot(loss).render('loss')
         self.optimizer.zero_grad()
         loss.backward()
 
@@ -91,7 +104,7 @@ class TDAgent(Agent):
         # 2015, where the author clipped the gradient within [-1, 1]
         # for param in self.policy_model.parameters():
         #     param.grad.data.clamp_(-1, 1)
-        nn.utils.clip_grad_norm_(self.policy_model.parameters(), 1.0)
+        # nn.utils.clip_grad_norm_(self.policy_model.parameters(), 1.0)
         self.optimizer.step()
 
         # soft update rule
@@ -143,13 +156,12 @@ class TDAgent(Agent):
                 self.writer.add_scalar(tag='Training/Q-Value', scalar_value=q,
                                        global_step=self.train_count)
                 self.train_count += 1
-                print(
-                    f'episode {episode} | step {t} | loss {loss} | q-value {q}')
+                # print(
+                #     f'episode {episode} | step {t} | loss {loss} | q-value {q}')
             observation = next_observation
             # self.env.render()
             if done:
-                num_steps = t + 1
-                print(f'episode {episode} finished at {num_steps} steps')
-                return cr, num_steps
+                # print(f'episode {episode} finished at {t + 1} steps')
+                return cr, t + 1
             else:
                 action = self.get_action(observation=observation)

@@ -13,7 +13,7 @@ if __name__ == "__main__":
     logger = ProjectLogger(level=10)
 
     # load initial configs for params
-    cfg = evaluate_file(f'{CONFIG_DIR}/td_config.jsonnet')
+    cfg = evaluate_file(f'{CONFIG_DIR}/n_step_td_config.jsonnet')
     logger.info(f'Using the following config: \n{cfg}')
     cfg = json.loads(cfg)
 
@@ -30,7 +30,9 @@ if __name__ == "__main__":
     experiment_cfg['experiment_path'] = experiment_path
     experiment_cfg['hyperparams_path'] = hyperparams_path
     experiment_cfg['tensorboard_path'] = tensorboard_path
-    seeds = np.random.choice(10000, 20, replace=False)
+    seeds = np.random.choice(100000, 20, replace=False)
+    # seeds = [34243, 3232, 23, 121, 43, 1212, 32, 111, 221, 5454]
+    seeds = [12]
     algos = cfg['algos']
     env_names = cfg['env_names']
     params_vals = [[discount, theta] for theta in cfg['theta_vals'] for discount
@@ -46,16 +48,13 @@ if __name__ == "__main__":
     # logger.info(f'Tuned hyperparams: \n{agent_cfg}')
     #
     # # plot the hyperparams
-    # plot.generate_plots(episodes=experiment_cfg['episodes'], output=output,
-    #                     plot_hyperparams=True, use_tensorboard=True,
-    #                     experiment_name=cfg['experiment_name'])
+    # plot.generate_plots(output=output, plot_hyperparams=True,
+    # use_tensorboard=True, experiment_cfg=experiment_cfg)
 
     # run dp experiments
     output = experiment.run()
     logger.info(f'Finished running experiments')
 
     # save plots!
-    # plot.generate_plots(output=output, episodes=experiment_cfg['episodes'],
-    #                     train_rng=experiment_cfg['train_rng'],
-    #                     plot_hyperparams=False, use_tensorboard=True,
-    #                     experiment_name=cfg['experiment_name'])
+    # plot.generate_plots(output=output, plot_hyperparams=False,
+    # use_tensorboard=True, expeeriment_cfg=experiment_cfg)

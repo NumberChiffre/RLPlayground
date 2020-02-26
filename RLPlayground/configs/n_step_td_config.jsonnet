@@ -2,7 +2,8 @@
     experiment_name: 'n_step_td',
 
     # dp methods
-    algos: ['expected_sarsa', 'q_learning', 'sarsa'],
+//    algos: ['expected_sarsa', 'q_learning', 'sarsa'],
+    algos: ['q_learning'],
 
     # environments
     env_names: ['CartPole-v0'],
@@ -11,11 +12,12 @@
     experiment_cfg:
     {
         'runs': 1,
-        'steps': 5000,
-        'episodes': 60,
+        'steps': 1000,
+        'episodes': 100001,
         'train_rng': 10,
         'test_rng': 5,
-        'replay_buffer_capacities': [50, 100, 250, 500],
+//        'replay_buffer_capacities': [50, 100, 250, 500],
+        'replay_buffer_capacities': [500],
         'batch_sizes': [32, 64, 128, 256],
     },
 
@@ -24,16 +26,18 @@
     {
         'CartPole-v0':
         {
+            'average_score_to_solve': 195,
+            'consecutive_steps_to_solve': 100,
             'q_learning':{
                 'eps': 0.1,
                 'gamma': 0.9,
-                'n_step': 4,
+                'n_step': 0,
                 'algo': 'q_learning',
                 'replay_capacity': 200,
                 'nn_hidden_units': [64, 64],
                 'lr': 0.001,
                 'batch_size': 32,
-                'update_freq': 10,
+                'update_freq': 1000,
             },
             'sarsa':{
                 'eps': 0.1,
@@ -44,7 +48,7 @@
                 'nn_hidden_units': [64, 64],
                 'lr': 0.001,
                 'batch_size': 32,
-                'update_freq': 10,
+                'update_freq': 100,
             },
             'expected_sarsa':{
                 'eps': 0.1,
@@ -55,7 +59,7 @@
                 'nn_hidden_units': [64, 64],
                 'lr': 0.01,
                 'batch_size': 32,
-                'update_freq': 500,
+                'update_freq': 100,
             }
         }
     },

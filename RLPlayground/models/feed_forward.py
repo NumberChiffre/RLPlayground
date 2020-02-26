@@ -77,10 +77,11 @@ class TwoLayerFCBodyWithAction(nn.Module):
 
 
 class LinearFCBody(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int,
+    def __init__(self, seed: int, state_dim: int, action_dim: int,
                  hidden_units: tuple = (64, 64),
                  gate: nn.functional = nn.functional.relu):
         super(LinearFCBody, self).__init__()
+        self.seed = torch.manual_seed(seed)
         self.state_dim = state_dim
         self.action_dim = action_dim
         hidden_size1, hidden_size2 = hidden_units

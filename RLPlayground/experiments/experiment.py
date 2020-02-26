@@ -8,7 +8,7 @@ from datetime import datetime
 
 from RLPlayground.agents.agent import Agent
 from RLPlayground.utils.logger import ProjectLogger
-from RLPlayground.utils.data_structures import foo, foo1
+from RLPlayground.utils.utils import nested_d
 
 
 class Experiment:
@@ -34,7 +34,7 @@ class Experiment:
         raise NotImplementedError('Experiment must generate metrics!')
 
     def run(self) -> defaultdict:
-        output = defaultdict(foo)
+        output = defaultdict(nested_d)
         for env_name in self.env_names:
             for algo in self.algos:
                 results = [
@@ -104,8 +104,8 @@ class Experiment:
         return cum_reward, test_cum_reward, time_to_solve, test_time_to_solve
 
     def tune_hyperparams(self):
-        output, best_params = defaultdict(foo), defaultdict(foo)
-        best_per_method = defaultdict(foo1)
+        output, best_params = defaultdict(nested_d), defaultdict(nested_d)
+        best_per_method = defaultdict(nested_d)
         results = [self._inner_tune_hyperparams.remote(self=self,
                                                        params=params)
                    for params in self.params_vals]
@@ -152,7 +152,7 @@ class Experiment:
     def _inner_tune_hyperparams(agent_cfg: dict, experiment_cfg: dict,
                                 env_names: List, algos: List, params: List,
                                 seeds: List) -> defaultdict:
-        output = defaultdict(foo)
+        output = defaultdict(nested_d)
         # slow-mo grid search over theta-discount rates
         agent_cfg['theta'] = params[0]
         agent_cfg['gamma'] = params[1]
