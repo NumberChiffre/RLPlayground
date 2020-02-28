@@ -1,9 +1,10 @@
 import ray
 import json
 from _jsonnet import evaluate_file
+import numpy as np
 
 from RLPlayground import CONFIG_DIR, RESULT_DIR, TENSORBOARD_DIR
-from RLPlayground.experiments.td_experiments import Experiment
+from RLPlayground.experiments.deep_td_experiments import Experiment
 from RLPlayground.utils.logger import ProjectLogger
 import RLPlayground.utils.plotter as plot
 
@@ -31,12 +32,10 @@ if __name__ == "__main__":
     experiment_cfg['experiment_path'] = experiment_path
     experiment_cfg['hyperparams_path'] = hyperparams_path
     experiment_cfg['tensorboard_path'] = tensorboard_path
-    # seeds = np.random.choice(99999, 10, replace=False)
-    seeds = [1337]
+    seeds = np.random.choice(99999, 4, replace=False)
+    # seeds = [1337]
     agents = cfg['agents']
     env_names = cfg['env_names']
-    params_vals = [[discount, theta] for theta in cfg['theta_vals'] for discount
-                   in cfg['gammas']]
     params = {'env_names': env_names, 'agents': agents, 'seeds': seeds,
               'experiment_cfg': experiment_cfg, 'agent_cfg': agent_cfg}
 

@@ -75,3 +75,5 @@ def hard_update(value_net: torch.nn.Module, target_net: torch.nn.Module):
             continue
         new_param = v_param.data
         t_param.data.copy_(new_param)
+
+

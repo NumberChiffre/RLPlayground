@@ -1,25 +1,15 @@
 from gym import Env
 from typing import Dict
+from RLPlayground.utils.registration import Registrable
 
 
-class Agent:
-    def __init__(self,
-                 env: Env,
-                 agent_cfg: Dict,
-                 *args,
-                 **kwargs):
-        """
+class Agent(Registrable):
+    @classmethod
+    def build(cls, type: str, env: Env, params: Dict):
+        agent = cls.by_name(type)
+        return agent.from_params(env, params)
 
-        :param env: gym environment
-        :param agent_cfg: dictionary containing params/hyperparams for agent
-        :param args:
-        :param kwargs:
-        """
-        self.env = env
-        self.agent_cfg = agent_cfg
-
-    def train(self):
-        raise NotImplementedError("Agent's training method not implemented!")
-
-    def interact(self):
-        raise NotImplementedError("Agent's interact method not implemented!")
+    @classmethod
+    def from_params(cls, env: Env, params: Dict):
+        raise NotImplementedError(
+            f'from_params not implemented in {cls.__class__.name}')

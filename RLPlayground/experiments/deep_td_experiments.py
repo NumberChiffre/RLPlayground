@@ -5,7 +5,7 @@ import pickle
 from collections import defaultdict, deque
 from typing import Dict, List, Tuple
 
-from RLPlayground.agents.deep_td import DeepTDAgent
+from RLPlayground.agents.agent import Agent
 from RLPlayground.experiments.experiment import Experiment
 from RLPlayground.utils.logger import ProjectLogger
 from RLPlayground.utils.utils import nested_d
@@ -35,11 +35,12 @@ class DeepTDExperiment(Experiment):
         for env_name in self.env_names:
             for agent in self.agents:
                 for capacity in self.replay_buffer_capacities:
-                    self.agent_cfg[agent]['replay_capacity'] = capacity
+                    self.agent_cfg[agent]['experience_replay']['params'][
+                        'capacity'] = capacity
                     # TODO: get rid of this for hardcoding..
                     if capacity >= 10000:
-                        self.agent_cfg[agent]['update_freq'] = 80000
-                        self.agent_cfg[agent]['warm_up_freq'] = 500
+                        self.agent_cfg[agent]['update_freq'] = 60000
+                        self.agent_cfg[agent]['warm_up_freq'] = 200
                     results = [DeepTDExperiment._inner_run.remote(
                         agent_cfg=self.agent_cfg,
                         experiment_cfg=self.experiment_cfg,
@@ -90,14 +91,13 @@ class DeepTDExperiment(Experiment):
             writer = SummaryWriter(
                 log_dir=f"{experiment_cfg['tensorboard_path']}/"
                 f"{experiment_cfg['date']}/{arg_path}")
-            agent = DeepTDAgent.build(type=agent_name, env=env,
-                                      params=agent_config)
+            agent = Agent.build(type=agent_name, env=env, params=agent_config)
 
             # go through runs, in order to further average, and episodes
             for r in range(experiment_cfg['runs']):
                 for i_episode in range(experiment_cfg['episodes']):
                     generator_obj = agent.interact(
-                        num_steps=experiment_cfg['steps'], episode=i_episode)
+                        num_steps=experiment_cfg['steps'])
                     episode_result = next(generator_obj)
                     cum_reward[i_lr, r, i_episode] = episode_result[
                         'cum_reward']
