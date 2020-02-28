@@ -1,67 +1,98 @@
 {
-    experiment_name: 'n_step_td',
-
-    # dp methods
-//    algos: ['expected_sarsa', 'q_learning', 'sarsa'],
-    algos: ['q_learning'],
-
-    # environments
+    experiment_name: 'DeepTDExperiment',
+    agents: ['DQNAgent', 'DeepExpectedSarsaAgent', 'DeepSarsaAgent'],
     env_names: ['CartPole-v0'],
 
     # specs for the experiment
     experiment_cfg:
     {
-        'runs': 1,
-        'steps': 1000,
-        'episodes': 100001,
-        'train_rng': 10,
-        'test_rng': 5,
-//        'replay_buffer_capacities': [50, 100, 250, 500],
-        'replay_buffer_capacities': [500],
-        'batch_sizes': [32, 64, 128, 256],
+        runs: 1,
+        steps: 300,
+        episodes: 2001,
+        train_rng: 10,
+        test_rng: 5,
+        replay_buffer_capacities: [10000, 500, 250, 100, 50],
+        batch_sizes: [32, 64, 128, 256],
+//        lrs: [0.0001, 0.0004, 0.0007, 0.001, 0.004, 0.007, 0.01, 0.04, 0.07, 0.1],
+        lrs: [0.01]
     },
 
     # specs for the agent for tabular environments
     agent_cfg:
     {
-        'CartPole-v0':
-        {
-            'average_score_to_solve': 195,
-            'consecutive_steps_to_solve': 100,
-            'q_learning':{
-                'eps': 0.1,
-                'gamma': 0.9,
-                'n_step': 0,
-                'algo': 'q_learning',
-                'replay_capacity': 200,
-                'nn_hidden_units': [64, 64],
-                'lr': 0.001,
-                'batch_size': 32,
-                'update_freq': 1000,
-            },
-            'sarsa':{
-                'eps': 0.1,
-                'gamma': 0.9,
-                'n_step': 4,
-                'algo': 'sarsa',
-                'replay_capacity': 200,
-                'nn_hidden_units': [64, 64],
-                'lr': 0.001,
-                'batch_size': 32,
-                'update_freq': 100,
-            },
-            'expected_sarsa':{
-                'eps': 0.1,
-                'gamma': 0.9,
-                'n_step': 4,
-                'algo': 'expected_sarsa',
-                'replay_capacity': 200,
-                'nn_hidden_units': [64, 64],
-                'lr': 0.01,
-                'batch_size': 32,
-                'update_freq': 100,
-            }
-        }
+        env_name: 'CartPole-v0',
+        average_score_to_solve: 195,
+        consecutive_steps_to_solve: 100,
+        DQNAgent: {
+            eps: 1,
+            use_eps_decay: true,
+            eps_decay: 0.999,
+            eps_min: 0.1,
+            gamma: 0.9,
+            n_step: 4,
+            use_double: true,
+            use_grad_clipping: false,
+            replay_capacity: 200,
+            nn_hidden_units: [64, 64],
+            lr: 0.001,
+            batch_size: 32,
+            update_type: 'hard',
+            tau: 0.01,
+            update_freq: 12000,
+            warm_up_freq: 500
+        },
+        DeepSarsaAgent: {
+            eps: 1,
+            use_eps_decay: true,
+            eps_decay: 0.999,
+            eps_min: 0.1,
+            gamma: 0.9,
+            n_step: 4,
+            use_grad_clipping: false,
+            replay_capacity: 200,
+            nn_hidden_units: [64, 64],
+            lr: 0.001,
+            batch_size: 32,
+            update_type: 'hard',
+            tau: 0.01,
+            update_freq: 12000,
+            warm_up_freq: 500
+        },
+        DeepExpectedSarsaAgent: {
+            eps: 1,
+            use_eps_decay: true,
+            eps_decay: 0.999,
+            eps_min: 0.1,
+            gamma: 0.9,
+            n_step: 4,
+            use_grad_clipping: false,
+            replay_capacity: 200,
+            nn_hidden_units: [64, 64],
+            lr: 0.001,
+            batch_size: 32,
+            update_type: 'hard',
+            tau: 0.01,
+            update_freq: 12000,
+            warm_up_freq: 500
+        },
+
+//        'DeepSarsaAgent':{
+//            'eps': 1,
+//            'eps_decay': 0.999,
+//            'eps_min': 0.1,
+//            'gamma': 0.9,
+//            'n_step': 4,
+////                'use_double': true,
+//            'use_grad_clipping': false,
+//            'replay_capacity': 200,
+//            'nn_hidden_units': [64, 64],
+//            'lr': 0.001,
+//            'batch_size': 32,
+//            'update_type': 'hard',
+//            'tau': 0.01,
+//            'update_freq': 12000,
+//            'warm_up_freq': 500
+//        }
     },
 
     # random seeds

@@ -1,14 +1,20 @@
+from gym import Env
 from typing import Dict
-from RLPlayground.utils.registration import Registrable
 
 
 class Agent:
     def __init__(self,
-                 env,
+                 env: Env,
                  agent_cfg: Dict,
                  *args,
                  **kwargs):
-        # super().__init__(*args, **kwargs)
+        """
+
+        :param env: gym environment
+        :param agent_cfg: dictionary containing params/hyperparams for agent
+        :param args:
+        :param kwargs:
+        """
         self.env = env
         self.agent_cfg = agent_cfg
 

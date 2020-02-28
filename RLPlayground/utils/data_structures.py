@@ -1,7 +1,6 @@
 import numpy as np
 from enum import Enum
 from typing import NamedTuple, Union
-from collections import defaultdict
 
 
 class RLAlgorithm(Enum):
@@ -11,6 +10,11 @@ class RLAlgorithm(Enum):
     MONTE_CARLO = 'monte_carlo'
     EXPECTED_SARSA = 'expected_sarsa'
     SARSA = 'sarsa'
+
+
+class TargetUpdate(Enum):
+    HARD = 'hard'
+    SOFT = 'soft'
 
 
 class Transition(NamedTuple):

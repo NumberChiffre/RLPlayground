@@ -1,54 +1,5 @@
 import torch.nn as nn
 import torch
-from typing import Dict, List, Tuple
-
-
-# # define agent
-# def agent(states, actions):
-#     """Simple Deep Neural Network."""
-#     model = Sequential()
-#     model.add(Flatten(input_shape=(1, states)))
-#     model.add(Dense(16))
-#     model.add(Activation('relu'))
-#     model.add(Dense(16))
-#     model.add(Activation('relu'))
-#     model.add(Dense(16))
-#     model.add(Activation('relu'))
-#     model.add(Dense(actions))
-#     model.add(Activation('linear'))
-#     return model
-#
-#
-# model = agent(states, actions)
-#
-# vgg_in_channels = 3
-#
-# # define layers for VGG, 'M' for max pooling
-# vgg_config = {
-#     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-#     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512,
-#               512, 'M'],
-#     'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512,
-#               'M', 512, 512, 512, 'M'],
-#     'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512,
-#               512, 512, 'M', 512, 512, 512, 512, 'M'],
-#     'VGGAttention': [64, 64, 128, 128, 256, 256, 256, 'M', 512, 512, 512, 'M',
-#                      512, 512, 512, 'M', 512, 'M', 512, 'M'],
-# }
-#
-
-class LinearFeedForward(nn.Module):
-    def __init__(self, nn_config: List):
-        super(LinearFeedForward, self).__init__()
-        self.l1 = nn.Sequential(
-            nn.Linear(nn_config['num_states'], nn_config['units']),
-            nn.ReLU(),
-            nn.Linear(nn_config['units'], nn_config['num_actions'])
-        )
-
-    def forward(self, x):
-        l1 = self.l1(x)
-        return l1
 
 
 def layer_init(layer, w_scale: int = 1.0):
@@ -79,20 +30,28 @@ class TwoLayerFCBodyWithAction(nn.Module):
 class LinearFCBody(nn.Module):
     def __init__(self, seed: int, state_dim: int, action_dim: int,
                  hidden_units: tuple = (64, 64),
-                 gate: nn.functional = nn.functional.relu):
+                 gate: nn.PReLU = nn.PReLU):
         super(LinearFCBody, self).__init__()
         self.seed = torch.manual_seed(seed)
         self.state_dim = state_dim
         self.action_dim = action_dim
         hidden_size1, hidden_size2 = hidden_units
-        self.fc1 = nn.Linear(self.state_dim, hidden_size1)
-        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc1 = nn.Sequential(
+            nn.Linear(self.state_dim, hidden_size1),
+            # nn.BatchNorm1d(hidden_size1),
+            nn.ReLU()
+        )
+        self.fc2 = nn.Sequential(
+            nn.Linear(hidden_size1, hidden_size2),
+            # nn.BatchNorm1d(hidden_size2),
+            nn.ReLU()
+        )
         self.fc3 = nn.Linear(hidden_size2, self.action_dim)
-        self.gate = gate
+        # self.gate = gate
 
     def forward(self, observation):
-        x = self.gate(self.fc1(observation))
-        x = self.gate(self.fc2(x))
+        x = self.fc1(observation)
+        x = self.fc2(x)
         x = self.fc3(x)
         return x
 

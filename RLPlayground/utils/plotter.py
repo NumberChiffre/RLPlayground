@@ -1,10 +1,28 @@
 import pickle
 import os
 from typing import Dict
+from collections import defaultdict
 import plotly
 import plotly.graph_objects as go
 from torch.utils.tensorboard import SummaryWriter
 from RLPlayground import RESULT_DIR, TENSORBOARD_DIR
+
+
+def plot_episodic_results(idx: int, seed: int, writer: SummaryWriter,
+                          episode_result: defaultdict):
+    """writes episodic results into tensorboard, called at the end of each
+    episode"""
+    for k, v in episode_result.items():
+        for i in range(idx, idx + len(v)):
+            if 'net_params' not in k:
+                writer.add_scalar(tag=k, scalar_value=v[i - idx], global_step=i)
+            else:
+                for tag, value in v[i - idx]:
+                    tag_ = f"{tag.replace('.', '/')}/{str(seed)}"
+                    writer.add_histogram(tag_, value.data.cpu().numpy(), i)
+                    tag_ = f"{tag.replace('.', '/')}/grad/{str(seed)}"
+                    writer.add_histogram(tag_, value.grad.data.cpu().numpy(),
+                                         i)
 
 
 def generate_plots(plot_hyperparams: bool, use_tensorboards: bool, output: dict,

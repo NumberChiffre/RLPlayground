@@ -1,10 +1,9 @@
 import ray
 import json
-import numpy as np
 from _jsonnet import evaluate_file
 
 from RLPlayground import CONFIG_DIR, RESULT_DIR, TENSORBOARD_DIR
-from RLPlayground.experiments.td_experiments import TDExperiment
+from RLPlayground.experiments.td_experiments import Experiment
 from RLPlayground.utils.logger import ProjectLogger
 import RLPlayground.utils.plotter as plot
 
@@ -24,25 +23,26 @@ if __name__ == "__main__":
 
     # specs for the experiment & agent
     experiment_cfg, agent_cfg = cfg['experiment_cfg'], cfg['agent_cfg']
-    experiment_path = f"{RESULT_DIR}/{cfg['experiment_name']}_experiments.pickle"
-    hyperparams_path = f"{RESULT_DIR}/{cfg['experiment_name']}_experiments_hyperparameters.pickle"
+    experiment_path = f"{RESULT_DIR}/" \
+        f"{cfg['experiment_name']}_experiments.pickle"
+    hyperparams_path = f"{RESULT_DIR}/" \
+        f"{cfg['experiment_name']}_experiments_hyperparameters.pickle"
     tensorboard_path = f"{TENSORBOARD_DIR}/{cfg['experiment_name']}/trainer"
     experiment_cfg['experiment_path'] = experiment_path
     experiment_cfg['hyperparams_path'] = hyperparams_path
     experiment_cfg['tensorboard_path'] = tensorboard_path
-    seeds = np.random.choice(100000, 20, replace=False)
-    # seeds = [34243, 3232, 23, 121, 43, 1212, 32, 111, 221, 5454]
-    seeds = [12]
-    algos = cfg['algos']
+    # seeds = np.random.choice(99999, 10, replace=False)
+    seeds = [1337]
+    agents = cfg['agents']
     env_names = cfg['env_names']
     params_vals = [[discount, theta] for theta in cfg['theta_vals'] for discount
                    in cfg['gammas']]
+    params = {'env_names': env_names, 'agents': agents, 'seeds': seeds,
+              'experiment_cfg': experiment_cfg, 'agent_cfg': agent_cfg}
 
-    experiment = TDExperiment(logger=logger, env_names=env_names,
-                               algos=algos, params_vals=params_vals,
-                               seeds=seeds, experiment_cfg=experiment_cfg,
-                               agent_cfg=agent_cfg)
-    #
+    experiment = Experiment.build(type=cfg['experiment_name'], logger=logger,
+                                  params=params)
+
     # # eval hyperparams
     # agent_cfg, output = experiment.tune_hyperparams()
     # logger.info(f'Tuned hyperparams: \n{agent_cfg}')
