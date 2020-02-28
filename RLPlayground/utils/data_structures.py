@@ -17,6 +17,11 @@ class TargetUpdate(Enum):
     SOFT = 'soft'
 
 
+class ReplayType(Enum):
+    EXPERIENCE_REPLAY = 'ExperienceReplay'
+    PRIORITIZED_EXPERIENCE_REPLAY = 'PrioritizedExperienceReplay'
+
+
 class Transition(NamedTuple):
     # store state, action, reward, next_state, done as Transition tuple
     s0: np.ndarray

@@ -12,4 +12,4 @@ class Agent(Registrable):
     @classmethod
     def from_params(cls, env: Env, params: Dict):
         raise NotImplementedError(
-            f'from_params not implemented in {cls.__class__.name}')
+            f'from_params not implemented in {cls.__name__}')

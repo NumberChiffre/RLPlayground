@@ -10,12 +10,12 @@ local env_names = ['CartPole-v0'];
     {
         runs: 1,
         steps: 300,
-        episodes: 801,
+        episodes: 11,
         train_rng: 10,
         test_rng: 5,
         replay_buffer_capacities: [10000, 500, 250],
         batch_sizes: [32, 64, 128, 256],
-        lrs: [0.01, 0.03, 0.08],
+        lrs: [0.01, 0.025, 0.05],
 //        lrs: [0.01]
     },
 
@@ -26,17 +26,18 @@ local env_names = ['CartPole-v0'];
         average_score_to_solve: 195,
         consecutive_steps_to_solve: 100,
         DQNAgent: {
+            use_double: true,
             use_gpu: true,
-            use_double: false,
             experience_replay: {
-                type: experience_replay_types[0],
+                type: experience_replay_types[1],
                 params: {
                     n_step: 4,
                     gamma: 0.9,
                     capacity: 200,
-//                    alpha: 0.6,
-//                    beta: 0.4,
-//                    beta_inc: 12000, //~target network update frequency
+                    non_zero_variant: 1e-6,
+                    alpha: 0.6,
+                    beta: 0.4,
+                    beta_inc: 12000, //~target network update frequency
                 },
             },
             model: {
@@ -54,10 +55,11 @@ local env_names = ['CartPole-v0'];
             eps_min: 0.1,
             gamma: 0.9,
             use_grad_clipping: false,
+            grad_clipping: 1.0,
             lr: 0.001,
             batch_size: 32,
             update_type: 'hard',
-            tau: 0.01,
+            tau: 0.01, // soft update param
             update_freq: 12000,
             warm_up_freq: 2000
         },
@@ -65,14 +67,15 @@ local env_names = ['CartPole-v0'];
             use_gpu: true,
 //            use_double: true,
             experience_replay: {
-                type: experience_replay_types[0],
+                type: experience_replay_types[1],
                 params: {
                     n_step: 4,
                     gamma: 0.9,
                     capacity: 200,
-//                    alpha: 0.6,
-//                    beta: 0.4,
-//                    beta_inc: 12000, //~target network update frequency
+                    non_zero_variant: 1e-6,
+                    alpha: 0.6,
+                    beta: 0.4,
+                    beta_inc: 12000, //~target network update frequency
                 },
             },
             model: {
@@ -90,25 +93,27 @@ local env_names = ['CartPole-v0'];
             eps_min: 0.1,
             gamma: 0.9,
             use_grad_clipping: false,
+            grad_clipping: 1.0,
             lr: 0.001,
             batch_size: 32,
             update_type: 'hard',
-            tau: 0.01,
+            tau: 0.01, // soft update param
             update_freq: 12000,
-            warm_up_freq: 500
+            warm_up_freq: 2000
         },
         DeepExpectedSarsaAgent: {
             use_gpu: true,
 //            use_double: true,
             experience_replay: {
-                type: experience_replay_types[0],
+                type: experience_replay_types[1],
                 params: {
                     n_step: 4,
                     gamma: 0.9,
                     capacity: 200,
-//                    alpha: 0.6,
-//                    beta: 0.4,
-//                    beta_inc: 12000, //~target network update frequency
+                    non_zero_variant: 1e-6,
+                    alpha: 0.6,
+                    beta: 0.4,
+                    beta_inc: 12000, //~target network update frequency
                 },
             },
             model: {
@@ -126,12 +131,13 @@ local env_names = ['CartPole-v0'];
             eps_min: 0.1,
             gamma: 0.9,
             use_grad_clipping: false,
+            grad_clipping: 1.0,
             lr: 0.001,
             batch_size: 32,
             update_type: 'hard',
-            tau: 0.01,
+            tau: 0.01, // soft update param
             update_freq: 12000,
-            warm_up_freq: 500
+            warm_up_freq: 2000
         },
     },
 }

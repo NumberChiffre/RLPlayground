@@ -12,7 +12,8 @@ from RLPlayground.utils.utils import torch_argmax_mask, get_epsilon_dist, \
 from RLPlayground.agents.agent import Agent
 from RLPlayground.models.model import TorchModel
 from RLPlayground.models.replay import Replay
-from RLPlayground.utils.data_structures import Transition, TargetUpdate
+from RLPlayground.utils.data_structures import Transition, TargetUpdate, \
+    ReplayType
 from RLPlayground.utils.registration import Registrable
 
 
@@ -48,22 +49,25 @@ class DeepTDAgent(Agent, Registrable):
         self.update_freq = agent_cfg['update_freq']
         self.warm_up_freq = agent_cfg['warm_up_freq']
         self.use_grad_clipping = agent_cfg['use_grad_clipping']
+        self.grad_clipping = agent_cfg['grad_clipping']
         self.lr = agent_cfg['lr']
         self.batch_size = agent_cfg['batch_size']
         self.seed = agent_cfg['seed']
         self.params = vars(self).copy()
 
-        # details for the NN model + experience replay
+        # details experience replay
         self.replay_buffer = Replay.build(
             type=agent_cfg['experience_replay']['type'],
             params=agent_cfg['experience_replay']['params'])
+
+        # details for the NN model
         agent_cfg['model']['seed'] = self.seed
         use_cuda = agent_cfg['use_gpu'] and torch.cuda.is_available()
         self.device = torch.device("cuda" if use_cuda else "cpu")
         self.value_net = TorchModel.build(type=agent_cfg['model']['type'],
-                                            params=agent_cfg['model']['params'])
+                                          params=agent_cfg['model']['params'])
         self.target_net = TorchModel.build(type=agent_cfg['model']['type'],
-                                             params=agent_cfg['model']['params'])
+                                           params=agent_cfg['model']['params'])
         self.value_net.to_device(self.device)
         self.target_net.to_device(self.device)
         self.target_net.load_state_dict(self.value_net.state_dict())
@@ -112,6 +116,12 @@ class DeepTDAgent(Agent, Registrable):
             soft_update(value_net=self.value_net, target_net=self.target_net,
                         tau=self.tau)
 
+        if self.use_eps_decay:
+            # self.eps = get_epsilon(eps_start=self.eps, eps_final=self.eps_min,
+            #                        eps_decay=self.eps_decay, t=1)
+            if self.eps >= self.eps_min:
+                self.eps *= self.eps_decay
+
         # save episodic results
         self.episodic_result['Training/Q-Loss'].append(
             float(self.loss.detach().cpu().numpy()))
@@ -143,7 +153,6 @@ class DeepTDAgent(Agent, Registrable):
             # transitions to estimate the q-values and train on losses
             transition = Transition(s0=observation, a=action, r=reward,
                                     s1=next_observation, done=done)
-
             self.replay_buffer.push(transition)
 
             # train policy network and update target network
@@ -153,11 +162,6 @@ class DeepTDAgent(Agent, Registrable):
 
             observation = next_observation
             action = self.get_action(observation=observation)
-            if self.use_eps_decay:
-                # self.eps = get_epsilon(eps_start=self.eps, eps_final=self.eps_min,
-                #                        eps_decay=self.eps_decay, t=1)
-                if self.eps >= self.eps_min:
-                    self.eps *= self.eps_decay
             t += 1
 
         # TODO: pause training and use eval with generator, need to add eval!
@@ -179,7 +183,15 @@ class DQNAgent(DeepTDAgent, Registrable):
         return cls(env, params)
 
     def train(self):
-        batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        # handle different replay types
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        elif self.replay_buffer.replay_type == \
+                ReplayType.PRIORITIZED_EXPERIENCE_REPLAY.value:
+            batch, weights = self.replay_buffer.sample(
+                batch_size=self.batch_size)
+
+        # handle different DQN
         if self.use_double:
             next_q = self.target_net(batch.s1).max(1)[0].detach()
         else:
@@ -189,25 +201,37 @@ class DQNAgent(DeepTDAgent, Registrable):
                                                           1)).squeeze(1)
 
         # expected Q and Q using value net
-        expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
             1)).squeeze(1)
         with torch.no_grad():
             self.q_ = self.value_net(batch.s0).gather(1,
                                                       1 - batch.a.unsqueeze(
                                                           1)).squeeze(1)
-
-        self.loss = self.loss_func(expected_q.detach(), self.q)
-        # torchviz.make_dot(loss).render('loss')
+            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q)
+        elif self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q) * torch.FloatTensor(
+                weights)
+        # torchviz.make_dot(self.loss).render('loss')
+        self.loss = self.loss.mean()
         self.optimizer.zero_grad()
         self.loss.backward()
 
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            for param in self.value_net.parameters():
-                param.grad.data.clamp_(-1, 1)
-            # nn.utils.clip_grad_norm_(self.value_net.parameters(), 1.0)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+
+        # update replay buffer..
+        if self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            # less memory used
+            with torch.no_grad():
+                abs_td_error = torch.abs(expected_q - self.q).cpu().numpy() + \
+                               self.replay_buffer.non_zero_variant
+            self.replay_buffer.update_priorities(losses=abs_td_error)
         self.optimizer.step()
 
 
@@ -221,32 +245,51 @@ class DeepSarsaAgent(DeepTDAgent, Registrable):
         return cls(env, params)
 
     def train(self):
-        batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        # handle different replay types
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        elif self.replay_buffer.replay_type == \
+                ReplayType.PRIORITIZED_EXPERIENCE_REPLAY.value:
+            batch, weights = self.replay_buffer.sample(
+                batch_size=self.batch_size)
+
         next_q = self.target_net(batch.s1).gather(1,
                                                   batch.a.unsqueeze(
                                                       1)).squeeze(
             1).detach()
 
         # expected Q and Q using value net
-        expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
             1)).squeeze(1)
         with torch.no_grad():
             self.q_ = self.value_net(batch.s0).gather(1,
                                                       1 - batch.a.unsqueeze(
                                                           1)).squeeze(1)
-
-        self.loss = self.loss_func(expected_q.detach(), self.q)
-        # torchviz.make_dot(loss).render('loss')
+            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q)
+        elif self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q) * torch.FloatTensor(
+                weights)
+        # torchviz.make_dot(self.loss).render('loss')
+        self.loss = self.loss.mean()
         self.optimizer.zero_grad()
         self.loss.backward()
 
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            for param in self.value_net.parameters():
-                param.grad.data.clamp_(-1, 1)
-            # nn.utils.clip_grad_norm_(self.value_net.parameters(), 1.0)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+
+        # update replay buffer..
+        if self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            # less memory used
+            with torch.no_grad():
+                abs_td_error = torch.abs(expected_q - self.q).cpu().numpy() + \
+                               self.replay_buffer.non_zero_variant
+            self.replay_buffer.update_priorities(losses=abs_td_error)
         self.optimizer.step()
 
 
@@ -260,30 +303,48 @@ class DeepExpectedSarsaAgent(DeepTDAgent, Registrable):
         return cls(env, params)
 
     def train(self):
-        batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        # handle different replay types
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            batch = self.replay_buffer.sample(batch_size=self.batch_size)
+        elif self.replay_buffer.replay_type == \
+                ReplayType.PRIORITIZED_EXPERIENCE_REPLAY.value:
+            batch, weights = self.replay_buffer.sample(
+                batch_size=self.batch_size)
         prob_dist = get_epsilon_dist(eps=self.eps, env=self.env,
                                      model=self.value_net, observation=batch.s1)
         next_q = torch.sum(self.target_net(batch.s1) * prob_dist.probs,
                            axis=1).detach()
 
         # expected Q and Q using value net
-        expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
             1)).squeeze(1)
         with torch.no_grad():
             self.q_ = self.value_net(batch.s0).gather(1,
                                                       1 - batch.a.unsqueeze(
                                                           1)).squeeze(1)
-
-        self.loss = self.loss_func(expected_q.detach(), self.q)
-        # torchviz.make_dot(loss).render('loss')
+            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+        if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q)
+        elif self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            self.loss = self.loss_func(expected_q, self.q) * torch.FloatTensor(
+                weights)
+        # torchviz.make_dot(self.loss).render('loss')
+        self.loss = self.loss.mean()
         self.optimizer.zero_grad()
         self.loss.backward()
 
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            for param in self.value_net.parameters():
-                param.grad.data.clamp_(-1, 1)
-            # nn.utils.clip_grad_norm_(self.value_net.parameters(), 1.0)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+
+        # update replay buffer..
+        if self.replay_buffer.replay_type == ReplayType. \
+                PRIORITIZED_EXPERIENCE_REPLAY.value:
+            # less memory used
+            with torch.no_grad():
+                abs_td_error = torch.abs(expected_q - self.q).cpu().numpy() + \
+                               self.replay_buffer.non_zero_variant
+            self.replay_buffer.update_priorities(losses=abs_td_error)
         self.optimizer.step()

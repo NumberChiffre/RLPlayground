@@ -40,7 +40,7 @@ class DeepTDExperiment(Experiment):
                     # TODO: get rid of this for hardcoding..
                     if capacity >= 10000:
                         self.agent_cfg[agent]['update_freq'] = 60000
-                        self.agent_cfg[agent]['warm_up_freq'] = 200
+                        self.agent_cfg[agent]['warm_up_freq'] = 500
                     results = [DeepTDExperiment._inner_run.remote(
                         agent_cfg=self.agent_cfg,
                         experiment_cfg=self.experiment_cfg,

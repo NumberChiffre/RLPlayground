@@ -263,7 +263,7 @@ if __name__ == '__main__':
     # with open(f'{RESULT_DIR}/dyna_mdp_experiments_hyperparameters.pickle',
     #           'rb') as file:
     #     hyperparams = pickle.load(file)
-    with open(f'{RESULT_DIR}/n_step_td_experiments.pickle', 'rb') as file:
+    with open(f'{RESULT_DIR}/DeepTDExperiment_experiments.pickle', 'rb') as file:
         output = pickle.load(file)
 
     cfg = evaluate_file(f'{CONFIG_DIR}/n_step_td_config.jsonnet')
