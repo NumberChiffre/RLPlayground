@@ -37,10 +37,6 @@ class DeepTDExperiment(Experiment):
                 for capacity in self.replay_buffer_capacities:
                     self.agent_cfg[agent]['experience_replay']['params'][
                         'capacity'] = capacity
-                    # TODO: get rid of this for hardcoding..
-                    if capacity >= 10000:
-                        self.agent_cfg[agent]['update_freq'] = 60000
-                        self.agent_cfg[agent]['warm_up_freq'] = 500
                     results = [DeepTDExperiment._inner_run.remote(
                         agent_cfg=self.agent_cfg,
                         experiment_cfg=self.experiment_cfg,
@@ -106,8 +102,6 @@ class DeepTDExperiment(Experiment):
                     episode_time[i_lr, r, i_episode] = episode_result[
                         'episode_time']
 
-                    # if cum_reward[i_lr, r, i_episode] >= agent_cfg[
-                    #     'average_score_to_solve']:
                     msg = f"lr {agent_config['lr']} | run {r} | " \
                         f"episode {i_episode} | eps {agent.eps} "
                     for k, v in episode_result.items():

@@ -4,7 +4,7 @@ from _jsonnet import evaluate_file
 import numpy as np
 
 from RLPlayground import CONFIG_DIR, RESULT_DIR, TENSORBOARD_DIR
-from RLPlayground.experiments.deep_td_experiments import Experiment
+from RLPlayground.experiments.deep_td_experiment import Experiment
 from RLPlayground.utils.logger import ProjectLogger
 import RLPlayground.utils.plotter as plot
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     cfg = json.loads(cfg)
 
     ray.init(
-        # local_mode=True,
+        local_mode=True,
         ignore_reinit_error=True,
     )
 
@@ -32,8 +32,8 @@ if __name__ == "__main__":
     experiment_cfg['experiment_path'] = experiment_path
     experiment_cfg['hyperparams_path'] = hyperparams_path
     experiment_cfg['tensorboard_path'] = tensorboard_path
-    seeds = np.random.choice(99999, 4, replace=False)
-    # seeds = [1337]
+    # seeds = np.random.choice(99999, 10, replace=False)
+    seeds = [1434, 22221]
     agents = cfg['agents']
     env_names = cfg['env_names']
     params = {'env_names': env_names, 'agents': agents, 'seeds': seeds,

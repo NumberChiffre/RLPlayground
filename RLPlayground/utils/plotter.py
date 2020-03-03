@@ -254,6 +254,55 @@ def generate_plot(env_name: str, train_or_test: str, algo: str,
 
         plotly.offline.plot(fig, filename=logdir)
 
+# import numpy as np
+# import matplotlib.pyplot as plt
+#
+#
+# def plot_lr_reward(output: Dict):
+#     for env_name in output.keys():
+#         for agent, capacities in output[env_name].items():
+#
+#             plt.rcParams.update({'font.size': 18})
+#             fig = plt.figure(figsize=(10, 16)).add_subplot(111)
+#             fig.title.set_text(f'{agent} Plot #1')
+#             fig.set_ylabel('Average Reward of last 10 episodes')
+#             fig.set_xlabel(r'$\alpha$')
+#
+#             for capacity, metrics in capacities.items():
+#                 for metric, lrs in metrics.items():
+#                     if metric == 'mean_cum_rewards':
+#                         fig.plot(list(lrs.keys()),
+#                                  [np.mean(v[-10:]) for k, v in lrs.items()],
+#                                  label=f'capacity={capacity}')
+#
+#             plt.grid(linestyle='--')
+#             plt.legend(loc='upper left')
+#             plt.show()
+#             plt.savefig(f'{agent}_plot_1.png')
+#             plt.clf()
+#
+#     # find max based on...?
+#     max_cap, max_lr = 500, 0.05
+#     # pick a capacity/lr with best episode rewards..
+#     for env_name in output.keys():
+#         for agent, capacities in output[env_name].items():
+#             plt.rcParams.update({'font.size': 18})
+#             fig = plt.figure(figsize=(16, 10)).add_subplot(111)
+#             fig.title.set_text(f'{agent} Plot #2')
+#             fig.set_ylabel('Reward')
+#             fig.set_xlabel('Episode')
+#             for capacity, metrics in capacities.items():
+#                 if capacity == max_cap:
+#                     for metric, lrs in metrics.items():
+#                         if 'mean' in metric or 'upper' in metric or 'lower' in metric:
+#                             fig.plot(np.arange(len(lrs[max_lr])),
+#                                      lrs[max_lr],
+#                                      label=metric)
+#             plt.grid(linestyle='--')
+#             plt.legend(loc='upper left')
+#             plt.show()
+#             plt.savefig(f'{agent}_plot_2.png')
+#             plt.clf()
 
 if __name__ == '__main__':
     from _jsonnet import evaluate_file
@@ -263,7 +312,7 @@ if __name__ == '__main__':
     # with open(f'{RESULT_DIR}/dyna_mdp_experiments_hyperparameters.pickle',
     #           'rb') as file:
     #     hyperparams = pickle.load(file)
-    with open(f'{RESULT_DIR}/DeepTDExperiment_experiments.pickle', 'rb') as file:
+    with open(f'{RESULT_DIR}/experiments.pickle', 'rb') as file:
         output = pickle.load(file)
 
     cfg = evaluate_file(f'{CONFIG_DIR}/n_step_td_config.jsonnet')
@@ -271,8 +320,9 @@ if __name__ == '__main__':
 
     # specs for the experiment
     experiment_cfg = cfg['experiment_cfg']
+    plot_lr_reward(output)
     # generate_plots(output=hyperparams, plot_hyperparams=True,
     # use_tensorboards=False, experiment_cfg=experiment_cfg)
-
-    generate_plots(output=output, plot_hyperparams=False,
-                   use_tensorboards=False, experiment_cfg=experiment_cfg)
+    #
+    # generate_plots(output=output, plot_hyperparams=False,
+    #                use_tensorboards=False, experiment_cfg=experiment_cfg)

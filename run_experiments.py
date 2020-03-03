@@ -4,7 +4,7 @@ import numpy as np
 from _jsonnet import evaluate_file
 
 from RLPlayground import CONFIG_DIR
-from RLPlayground.experiments.dyna_mdp_experiments import DPExperiment
+from RLPlayground.experiments.dyna_mdp_experiment import DPExperiment
 from RLPlayground.utils.logger import ProjectLogger
 import RLPlayground.utils.plotter as plot
 

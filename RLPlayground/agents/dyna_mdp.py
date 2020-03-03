@@ -6,14 +6,19 @@ from RLPlayground.agents.agent import Agent
 from RLPlayground.utils.data_structures import RLAlgorithm
 
 
-# @Agent.register('dyna_mdp')
+@Agent.register('dyna_mdp')
 class MDPDynaAgent(Agent):
     def __init__(self,
                  env: Env,
                  agent_cfg: Dict):
-        super(MDPDynaAgent, self).__init__(env=env, agent_cfg=agent_cfg)
+        super().__init__()
+        self.env = env
         self.theta = agent_cfg['theta']
         self.gamma = agent_cfg['gamma']
+
+    @classmethod
+    def from_params(cls, env: Env, params: Dict):
+        return cls(env, **params)
 
     def random_policy(self) -> np.array:
         # generate random policy to evaluate different experiments by seeds

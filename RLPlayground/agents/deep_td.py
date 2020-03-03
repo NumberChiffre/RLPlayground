@@ -94,10 +94,6 @@ class DeepTDAgent(Agent, Registrable):
         else:
             state = torch.FloatTensor(observation).to(self.device)
             return self.value_net(state).max(1)[1].data[0].item()
-        # observation = torch.FloatTensor(observation).to(self.device)
-        # dist = get_epsilon_dist(eps=self.eps, env=self.env,
-        #                         model=self.value_net, observation=observation)
-        # return dist.sample().item()
 
     def train(self):
         raise NotImplementedError('DeepTD Agent requires a train() method')
@@ -124,12 +120,12 @@ class DeepTDAgent(Agent, Registrable):
 
         # save episodic results
         self.episodic_result['Training/Q-Loss'].append(
-            float(self.loss.detach().cpu().numpy()))
+            self.loss.detach().cpu().numpy())
         self.episodic_result['Training/Mean-Q-Value-Action'].append(
-            float(np.mean(self.q.detach().cpu().numpy())))
+            np.mean(self.q.detach().cpu().numpy()))
         self.episodic_result[
             'Training/Mean-Q-Value-Opposite-Action'].append(
-            float(np.mean(self.q_.detach().cpu().numpy())))
+            np.mean(self.q_.detach().cpu().numpy()))
         # self.episodic_result['value_net_params'].append(
         #     self.value_net.named_parameters())
 
@@ -168,6 +164,14 @@ class DeepTDAgent(Agent, Registrable):
         yield {
             'cum_reward': cr,
             'time_to_solve': t,
+            'mean_q_loss': np.mean(
+                self.episodic_result['Training/Q-Loss'][-t:]),
+            'mean_action_q_value': np.mean(self.episodic_result[
+                                               'Training/Mean-Q-Value-Action'][
+                                           -t:]),
+            'mean_opposite_action_q_value': np.mean(self.episodic_result[
+                                                        'Training/Mean-Q-Value-Opposite-Action'][
+                                                    -t:]),
             'episode_time': time.time() - start,
         }
 
@@ -193,7 +197,7 @@ class DQNAgent(DeepTDAgent, Registrable):
 
         # handle different DQN
         if self.use_double:
-            next_q = self.target_net(batch.s1).max(1)[0].detach()
+            next_q = self.target_net(batch.s1).max(1)[0]
         else:
             next_q_actions = torch.max(self.value_net(batch.s1), dim=1)[1]
             next_q = self.target_net(batch.s1).gather(1,
@@ -201,12 +205,10 @@ class DQNAgent(DeepTDAgent, Registrable):
                                                           1)).squeeze(1)
 
         # expected Q and Q using value net
-        self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
-            1)).squeeze(1)
+        q_values = self.value_net(batch.s0)
+        self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
-            self.q_ = self.value_net(batch.s0).gather(1,
-                                                      1 - batch.a.unsqueeze(
-                                                          1)).squeeze(1)
+            self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
             expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
@@ -222,7 +224,8 @@ class DQNAgent(DeepTDAgent, Registrable):
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(),
+                                     self.grad_clipping)
 
         # update replay buffer..
         if self.replay_buffer.replay_type == ReplayType. \
@@ -254,17 +257,13 @@ class DeepSarsaAgent(DeepTDAgent, Registrable):
                 batch_size=self.batch_size)
 
         next_q = self.target_net(batch.s1).gather(1,
-                                                  batch.a.unsqueeze(
-                                                      1)).squeeze(
-            1).detach()
+                                                  batch.a.unsqueeze(1)).squeeze(
+            1)
 
-        # expected Q and Q using value net
-        self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
-            1)).squeeze(1)
+        q_values = self.value_net(batch.s0)
+        self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
-            self.q_ = self.value_net(batch.s0).gather(1,
-                                                      1 - batch.a.unsqueeze(
-                                                          1)).squeeze(1)
+            self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
             expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
@@ -280,7 +279,8 @@ class DeepSarsaAgent(DeepTDAgent, Registrable):
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(),
+                                     self.grad_clipping)
 
         # update replay buffer..
         if self.replay_buffer.replay_type == ReplayType. \
@@ -313,15 +313,13 @@ class DeepExpectedSarsaAgent(DeepTDAgent, Registrable):
         prob_dist = get_epsilon_dist(eps=self.eps, env=self.env,
                                      model=self.value_net, observation=batch.s1)
         next_q = torch.sum(self.target_net(batch.s1) * prob_dist.probs,
-                           axis=1).detach()
+                           axis=1)
 
         # expected Q and Q using value net
-        self.q = self.value_net(batch.s0).gather(1, batch.a.unsqueeze(
-            1)).squeeze(1)
+        q_values = self.value_net(batch.s0)
+        self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
-            self.q_ = self.value_net(batch.s0).gather(1,
-                                                      1 - batch.a.unsqueeze(
-                                                          1)).squeeze(1)
+            self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
             expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
@@ -337,7 +335,8 @@ class DeepExpectedSarsaAgent(DeepTDAgent, Registrable):
         # gradient clipping to avoid loss divergence based on DeepMind's DQN in
         # 2015, where the author clipped the gradient within [-1, 1]
         if self.use_grad_clipping:
-            nn.utils.clip_grad_norm_(self.value_net.parameters(), self.grad_clipping)
+            nn.utils.clip_grad_norm_(self.value_net.parameters(),
+                                     self.grad_clipping)
 
         # update replay buffer..
         if self.replay_buffer.replay_type == ReplayType. \
