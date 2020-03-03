@@ -54,16 +54,15 @@ class ExperienceReplay(Replay, Registrable):
                 transition = self.generate_n_step_q()
         self.memory.append(transition)
 
+    # TODO: try running with this update
     def generate_n_step_q(self) -> Transition:
         """with s(t), s(t+1), calculate a discounted reward by backtracking
         n_steps prior to t and setting s(t) to s(t-n_steps)"""
         transitions = self.n_step_memory
-        reward, next_observation, done = transitions[-1][-3:]
-        for i in range(len(transitions) - 1):
-            reward = self.gamma * reward * (1 - transitions[i].done) + \
-                     transitions[i].r
-            next_observation, done = (transitions[i].s1, transitions[i].done) \
-                if transitions[i].done else (next_observation, done)
+        reward = 0
+        next_observation, done = transitions[-1][-2:]
+        for idx, transition in enumerate(transitions):
+            reward += (self.gamma ** idx) * transition.r
         observation, action = transitions[0][:2]
         return Transition(s0=observation, a=action, r=reward,
                           s1=next_observation, done=done)
@@ -92,7 +91,6 @@ class PrioritizedExperienceReplay(ExperienceReplay, Registrable):
     def __init__(self,
                  capacity: int,
                  n_step: int,
-                 alpha: float,
                  beta: float,
                  beta_inc: float,
                  gamma: float,
@@ -110,9 +108,9 @@ class PrioritizedExperienceReplay(ExperienceReplay, Registrable):
         """
         # try with alpha=0.6, beta=0.4, beta_inc=100~network update frequency
         super().__init__(capacity=capacity, n_step=n_step, gamma=gamma)
-        assert alpha + beta == 1.0
-        self.alpha = alpha
         self.beta = beta
+        self.alpha = 1 - beta
+        assert self.alpha + self.beta == 1.0
         self.beta_inc = (1 - beta) / beta_inc
         self.non_zero_variant = non_zero_variant
         self.priorities = np.zeros([self.capacity], dtype=np.float32)
