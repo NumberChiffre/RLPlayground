@@ -1,4 +1,4 @@
-local episodes = 1000;
+local episodes = 10000;
 local opt_func = 'cum_reward';
 local scheduler = [
     'FIFO',
@@ -24,7 +24,7 @@ local search_alg = [
         cpu: 1,
         gpu: 0,
     },
-    num_samples: 10,
+    num_samples: 50,
     checkpoint_at_end: true,
     scheduler: {
         type: scheduler[1],

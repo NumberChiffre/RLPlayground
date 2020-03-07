@@ -13,7 +13,7 @@ local env_names = ['CartPole-v0'];
         train_rng: 10,
         test_rng: 5,
 //        replay_buffer_capacities: [500, 250, 100, 50],
-        replay_buffer_capacities: [20000, 10000, 5000, 500, 250, 100, 50],
+        replay_buffer_capacities: [20000, 10000, 5000],
         update_freqs: [10000, 20000, 50000],
         warm_up_freqs: [500, 1000],
         batch_sizes: [32, 64, 128],

@@ -209,7 +209,8 @@ class DQNAgent(DeepTDAgent, Registrable):
         self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
-            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+            expected_q = batch.r + self.gamma ** self.replay_buffer.n_step * (
+                        1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
         elif self.replay_buffer.replay_type == ReplayType. \
@@ -264,7 +265,8 @@ class DeepSarsaAgent(DeepTDAgent, Registrable):
         self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
-            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+            expected_q = batch.r + self.gamma ** self.replay_buffer.n_step * (
+                        1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
         elif self.replay_buffer.replay_type == ReplayType. \
@@ -320,7 +322,8 @@ class DeepExpectedSarsaAgent(DeepTDAgent, Registrable):
         self.q = q_values.gather(1, batch.a.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             self.q_ = q_values.gather(1, 1 - batch.a.unsqueeze(1)).squeeze(1)
-            expected_q = batch.r + self.gamma * (1 - batch.done) * next_q
+            expected_q = batch.r + self.gamma ** self.replay_buffer.n_step * (
+                        1 - batch.done) * next_q
         if self.replay_buffer.replay_type == ReplayType.EXPERIENCE_REPLAY.value:
             self.loss = self.loss_func(expected_q, self.q)
         elif self.replay_buffer.replay_type == ReplayType. \

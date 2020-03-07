@@ -44,16 +44,16 @@ if __name__ == '__main__':
             agent_cfg[agent]['experience_replay']['params'][
                 'capacity'] = tune.choice(
                 experiment_cfg['replay_buffer_capacities'])
-            agent_cfg[agent]['warm_up_freq'] = tune.choice(
-                experiment_cfg['warm_up_freqs'])
-            agent_cfg[agent]['update_freq'] = tune.choice(
-                experiment_cfg['update_freqs'])
-            agent_cfg[agent]['batch_size'] = tune.choice(
-                experiment_cfg['batch_sizes'])
+            # agent_cfg[agent]['warm_up_freq'] = tune.choice(
+            #     experiment_cfg['warm_up_freqs'])
+            # agent_cfg[agent]['update_freq'] = tune.choice(
+            #     experiment_cfg['update_freqs'])
+            # agent_cfg[agent]['batch_size'] = tune.choice(
+            #     experiment_cfg['batch_sizes'])
+            # agent_cfg[agent]['grad_clipping'] = tune.choice(
+            #     experiment_cfg['grad_clippings'])
             agent_cfg[agent]['experience_replay']['params'][
                 'beta'] = tune.choice(experiment_cfg['betas'])
-            agent_cfg[agent]['grad_clipping'] = tune.choice(
-                experiment_cfg['grad_clippings'])
             # agent_cfg[agent]['eps'] = tune.choice(
             #     experiment_cfg['epsilons'])
 
