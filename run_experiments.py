@@ -4,7 +4,7 @@ import numpy as np
 from _jsonnet import evaluate_file
 
 from RLPlayground import CONFIG_DIR
-from RLPlayground.experiments.dyna_mdp_experiments import Experimenting
+from RLPlayground.experiments.dyna_mdp_experiment import DPExperiment
 from RLPlayground.utils.logger import ProjectLogger
 import RLPlayground.utils.plotter as plot
 
@@ -25,28 +25,31 @@ if __name__ == "__main__":
     # specs for the experiment & agent
     experiment_cfg, agent_cfg = cfg['experiment_cfg'], cfg['agent_cfg']
     seeds = np.random.choice(100000, 10, replace=False)
-    dp_methods = cfg['dp_methods']
+    algos = cfg['algos']
     env_names = cfg['env_names']
     params_vals = [[discount, theta] for theta in cfg['theta_vals'] for discount
-                   in cfg['discount_rates']]
+                   in cfg['gammas']]
 
-    experiment = Experimenting(logger=logger, experiment_cfg=experiment_cfg,
+    experiment = DPExperiment(logger=logger, experiment_cfg=experiment_cfg,
                                agent_cfg=agent_cfg, env_names=env_names,
-                               dp_methods=dp_methods, params_vals=params_vals,
+                               algos=algos, params_vals=params_vals,
                                seeds=seeds)
 
     # eval hyperparams
-    agent_cfg, output = experiment.evaluate_hyperparameters()
+    agent_cfg, output = experiment.tune_hyperparams()
     logger.info(f'Tuned hyperparams: \n{agent_cfg}')
 
     # plot the hyperparams
     plot.generate_plots(episodes=experiment_cfg['episodes'], output=output,
-                        plot_hyperparams=True)
+                        plot_hyperparams=True, use_tensorboard=True,
+                        experiment_name=cfg['experiment_name'])
+
     # run dp experiments
-    output = experiment.run_dp()
+    output = experiment.run()
     logger.info(f'Finished running mdp experiments')
 
     # save plots!
     plot.generate_plots(output=output, episodes=experiment_cfg['episodes'],
                         train_rng=experiment_cfg['train_rng'],
-                        plot_hyperparams=False)
+                        plot_hyperparams=False, use_tensorboard=True,
+                        experiment_name=cfg['experiment_name'])

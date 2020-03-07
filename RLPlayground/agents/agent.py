@@ -1,16 +1,15 @@
+from gym import Env
 from typing import Dict
+from RLPlayground.utils.registration import Registrable
 
 
-class Agent:
-    def __init__(self,
-                 env,
-                 agent_cfg: Dict):
-        self.env = env
-        self.agent_cfg = agent_cfg
+class Agent(Registrable):
+    @classmethod
+    def build(cls, type: str, env: Env, params: Dict):
+        agent = cls.by_name(type)
+        return agent.from_params(env, params)
 
-    def random_policy(self):
-        raise NotImplementedError("Agent's random policy not implemented!")
-
-    def train(self):
-        raise NotImplementedError("Agent's training method not implemented!")
-
+    @classmethod
+    def from_params(cls, env: Env, params: Dict):
+        raise NotImplementedError(
+            f'from_params not implemented in {cls.__name__}')

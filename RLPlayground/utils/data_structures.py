@@ -1,17 +1,29 @@
+import numpy as np
 from enum import Enum
 from typing import NamedTuple, Union
-import numpy as np
 
 
 class RLAlgorithm(Enum):
     VI = 'value_iteration'
     PI = 'policy_iteration'
-    QLearn = 'q_learning'
+    QLearning = 'q_learning'
     MONTE_CARLO = 'monte_carlo'
+    EXPECTED_SARSA = 'expected_sarsa'
+    SARSA = 'sarsa'
 
 
-class Experience(NamedTuple):
-    # store state, action, reward, next_state, done as Experience tuple
+class TargetUpdate(Enum):
+    HARD = 'hard'
+    SOFT = 'soft'
+
+
+class ReplayType(Enum):
+    EXPERIENCE_REPLAY = 'ExperienceReplay'
+    PRIORITIZED_EXPERIENCE_REPLAY = 'PrioritizedExperienceReplay'
+
+
+class Transition(NamedTuple):
+    # store state, action, reward, next_state, done as Transition tuple
     s0: np.ndarray
     a: Union[int, str]  # Action
     r: np.ndarray
