@@ -129,7 +129,7 @@ class DeepTDAgent(Agent, Registrable):
         # self.episodic_result['value_net_params'].append(
         #     self.value_net.named_parameters())
 
-    def interact(self, num_steps: int) -> Generator:
+    def learn(self, num_steps: int) -> Generator:
         """use agent to interact with environment by making actions based on
         optimal policy to obtain cumulative rewards"""
         cr, t = 0, 0

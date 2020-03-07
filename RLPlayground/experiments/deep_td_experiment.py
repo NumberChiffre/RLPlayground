@@ -92,7 +92,7 @@ class DeepTDExperiment(Experiment):
             # go through runs, in order to further average, and episodes
             for r in range(experiment_cfg['runs']):
                 for i_episode in range(experiment_cfg['episodes']):
-                    generator_obj = agent.interact(
+                    generator_obj = agent.learn(
                         num_steps=experiment_cfg['steps'])
                     episode_result = next(generator_obj)
                     cum_reward[i_lr, r, i_episode] = episode_result[

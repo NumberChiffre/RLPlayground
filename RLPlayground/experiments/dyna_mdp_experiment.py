@@ -73,7 +73,7 @@ class DPExperiment(Experiment):
                     avg_cr = list()
                     # get reward for next 5 episodes
                     for test_episode in range(experiment_cfg['test_rng']):
-                        cr, t = agent.interact(
+                        cr, t = agent.learn(
                             num_steps=experiment_cfg['steps'],
                             episode=i_episode)
                         test_time_to_solve[r, i_episode // 10 - 1] = t
@@ -81,7 +81,7 @@ class DPExperiment(Experiment):
                     test_cum_reward[r, i_episode // 10 - 1] = np.mean(avg_cr)
 
                 # interact with environment to get reward based on optimal policy
-                cr, t = agent.interact(num_steps=experiment_cfg['steps'],
+                cr, t = agent.learn(num_steps=experiment_cfg['steps'],
                                        episode=i_episode)
                 time_to_solve[r, i_episode] = t
                 cum_reward[r, i_episode] = cr

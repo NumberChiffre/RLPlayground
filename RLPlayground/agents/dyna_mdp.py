@@ -37,7 +37,7 @@ class MDPDynaAgent(Agent):
                                                            0])
         return policy, value_func
 
-    def interact(self, num_steps: int, opt_policy: np.array) -> Tuple[
+    def learn(self, num_steps: int, opt_policy: np.array) -> Tuple[
         float, int]:
         # use agent to interact with environment by making actions based on
         # optimal policy to obtain cumulative rewards

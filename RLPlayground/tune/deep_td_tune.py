@@ -45,7 +45,7 @@ class DeepTDTrainable(tune.Trainable):
     def _train(self):
         # use for episodic training
         self.episodes += 1
-        generator_obj = self.agent.interact(
+        generator_obj = self.agent.learn(
             num_steps=self.experiment_cfg['steps'])
         episode_result = next(generator_obj)
         self.track_reward_100.append(episode_result['cum_reward'])
